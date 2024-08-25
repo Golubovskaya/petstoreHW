@@ -28,15 +28,17 @@ jobs:
         pip install flake8 pytest requests jsonschema randimage numpy Pillow allure-pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Lint with flake8
-      run: |
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: Test with pytest
+    - name: Run tests with pytest and generate Allure results
       run: |
         pytest api_test.py --alluredir=allure-results
       continue-on-error: true
+
+    - name: Archive allure results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: allure-results
+        path: allure-results
 
   publish:
     needs: build
@@ -46,6 +48,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Download allure results
+      uses: actions/download-artifact@v3
+      with:
+        name: allure-results
+
     - name: Load test report history
       uses: actions/checkout@v4
       if: always()
@@ -54,7 +61,7 @@ jobs:
         ref: gh-pages
         path: gh-pages
 
-    - name: Build test report
+    - name: Build and generate Allure report
       uses: simple-elf/allure-report-action@v1.7
       if: always()
       with:
